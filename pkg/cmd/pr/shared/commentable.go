@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var errCommentsNotFound = errors.New("no comments found for current user")
+
 type InputType int
 
 const (
@@ -43,6 +45,7 @@ type CommentableOptions struct {
 	InputType             InputType
 	Body                  string
 	EditLast              bool
+	EditLastOrCreate      bool
 	Quiet                 bool
 	Host                  string
 }
@@ -75,6 +78,10 @@ func CommentablePreRun(cmd *cobra.Command, opts *CommentableOptions) error {
 		return cmdutil.FlagErrorf("specify only one of `--body`, `--body-file`, `--editor`, or `--web`")
 	}
 
+	if opts.EditLast && opts.EditLastOrCreate {
+		return cmdutil.FlagErrorf("specify only one of `--edit-last` or `--edit-last-or-create`")
+	}
+
 	return nil
 }
 
@@ -84,8 +91,12 @@ func CommentableRun(opts *CommentableOptions) error {
 		return err
 	}
 	opts.Host = repo.RepoHost()
-	if opts.EditLast {
-		return updateComment(commentable, opts)
+	if opts.EditLast || opts.EditLastOrCreate {
+		err = updateComment(commentable, opts)
+
+		if !(errors.Is(err, errCommentsNotFound) && opts.EditLastOrCreate) {
+			return err
+		}
 	}
 	return createComment(commentable, opts)
 }
@@ -144,7 +155,7 @@ func createComment(commentable Commentable, opts *CommentableOptions) error {
 func updateComment(commentable Commentable, opts *CommentableOptions) error {
 	comments := commentable.CurrentUserComments()
 	if len(comments) == 0 {
-		return fmt.Errorf("no comments found for current user")
+		return errCommentsNotFound
 	}
 
 	lastComment := &comments[len(comments)-1]

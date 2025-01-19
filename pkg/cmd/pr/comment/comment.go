@@ -75,6 +75,7 @@ func NewCmdComment(f *cmdutil.Factory, runF func(*shared.CommentableOptions) err
 	cmd.Flags().BoolP("editor", "e", false, "Skip prompts and open the text editor to write the body in")
 	cmd.Flags().BoolP("web", "w", false, "Open the web browser to write the comment")
 	cmd.Flags().BoolVar(&opts.EditLast, "edit-last", false, "Edit the last comment of the same author")
+	cmd.Flags().BoolVar(&opts.EditLastOrCreate, "edit-last-or-create", false, "Edit the last comment of the same author, or create a new one if none exists")
 
 	return cmd
 }
